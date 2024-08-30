@@ -14,7 +14,7 @@
       "allowSyntheticDefaultImports": true,
       "resolveJsonModule": true,
       "forceConsistentCasingInFileNames": true,
-      "removeComments": true,
+      "removeComments": false,
       "typeRoots": [
           "node_modules/@types"
       ],

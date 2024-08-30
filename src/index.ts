@@ -18,7 +18,10 @@ export interface LoggerOptions {
     showPrefix?: string | (() => string);
     /** Uses `id` if `name` is blank */
     component?: { id: string; name?: string };
-    colorized?: { [key: string]: Chalk }
+    colorized?: { [key: string]: Chalk };
+    timezone?: boolean;
+    contextColors?: { [key: string]: Chalk };
+    defaultComponentColor?: Chalk;
 }
 
 export enum LogLevel {
@@ -28,12 +31,23 @@ export enum LogLevel {
     Debug   = 3
 }
 
+const LOG_COLORS: Record<string, Chalk> = {
+    info: chalk.green,
+    warn: chalk.yellowBright,
+    debug: chalk.blueBright,
+    error: chalk.redBright
+}
+
 const loggers = new Map<string, Logger>();
 const loggersComponentIdMap = new Map<string, string>();
 
 export class Logger {
     public readonly id: string;
-    public options: LoggerOptions = { level: LogLevel.Info };
+    public options: LoggerOptions = {
+        level: LogLevel.Info,
+        defaultComponentColor: chalk.magenta,
+        contextColors: {}
+    };
     public readonly prefix!: string;
     constructor(options?: LoggerOptions) {
         this.id = randomUUID();
@@ -54,15 +68,20 @@ export class Logger {
     }
     public setOptions(options?: LoggerOptions) {
         Object.assign(this.options, options);
-        if (options && Object.hasOwn(options, 'module') && Object.hasOwn(options.component!, 'id') && Object.hasOwn(options.component!, 'name')) {
+        const doSetComponent = options && 'module' in options
+            && 'id' in options.component! && 'name' in options.component!;
+        if (doSetComponent) {
             options.component!.name = options.component!.id;
         }
         if (options?.showPrefix) {
             if (typeof options.showPrefix === 'string') {
-                Object.defineProperty(this, 'prefix', { writable: false, value: options.showPrefix });
+                Object.defineProperty(this, 'prefix', {
+                    writable: true,
+                    value: options.showPrefix
+                });
             } else {
                 Object.defineProperty(this, 'prefix', {
-                    writable: false,
+                    writable: true,
                     value: options.showPrefix()
                 })
             }
@@ -77,32 +96,31 @@ export class Logger {
         loggers.set(logger.id, logger);
         return logger;
     }
-    private colorizeSender(string: string) {
-        if (this.options.colorized && Object.hasOwn(this.options.colorized, string)) {
-            return this.options.colorized[string]();
+    private colorizeSender(colStr: string, rawStr: string) {
+        if (this.options.colorized && colStr in this.options.colorized) {
+            return this.options.colorized[colStr](rawStr);
         }
-        return chalk.blueBright(string);
+        return chalk.blue(rawStr);
     }
     private formatMessage(level: 'info' | 'warn' | 'debug' | 'error', message: string, context?: string): string {
-        const timeFormat = DateTime.now().setZone('America/Los_Angeles').toFormat(`[yyyy-LL-dd hh:mm:ss a]`);
-        // const prefix = this.options.cluster !== undefined ? `[C${this.options.cluster}]` : `[ClusterManager]`;
-        let logMessage = `${this.colorizeSender(`${this.prefix}`)} ${timeFormat}`;
-        
-        const logColors: Record<typeof level, Chalk> = {
-            info: chalk.green,
-            warn: chalk.yellowBright,
-            debug: chalk.blueBright,
-            error: chalk.redBright
-        }
-        logMessage += ` ${logColors[level](`[${level.toUpperCase()}]`)}`;
+        const timeFormat = DateTime.now()
+            .setZone('America/Los_Angeles')
+            .toFormat(`[yyyy-LL-dd hh:mm:ss a${this.options.timezone ? ' ZZZZ' : ''}]`);
+        let logMessage = (this.prefix ? `${this.colorizeSender(this.prefix, `[${this.prefix}]`)} ` : '') + `${timeFormat}`;
+
+        logMessage += ` ${LOG_COLORS[level](`[${level.toUpperCase()}]`)}`;
         const contextColors: Record<string, Chalk> = {
             System: chalk.magenta,
             Mongo: chalk.green,
             MongoDB: chalk.green,
+            Database: chalk.green,
             Redis: chalk.red
         }
+        Object.assign(contextColors, this.options.contextColors);
         if (context && context in contextColors) logMessage += ` [${contextColors[context](context)}]`;
-        if (this.options.component) logMessage += ` ${chalk.magenta(`[${this.options.component!.name}]`)}`;
+        if (this.options.component) {
+            logMessage += ` ${this.options.defaultComponentColor!(`[${this.options.component!.name}]`)}`;
+        }
         return logMessage + ` ${message}`;
     }
     public info(message: string, context?: string) {
