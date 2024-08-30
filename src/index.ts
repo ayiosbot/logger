@@ -117,7 +117,13 @@ export class Logger {
             Redis: chalk.red
         }
         Object.assign(contextColors, this.options.contextColors);
-        if (context && context in contextColors) logMessage += ` [${contextColors[context](context)}]`;
+        if (context) {
+            if (context in contextColors) {
+                logMessage += ` [${contextColors[context](context)}]`;
+            } else {
+                logMessage += ` [${context}]`;
+            }
+        }
         if (this.options.component) {
             logMessage += ` ${this.options.defaultComponentColor!(`[${this.options.component!.name}]`)}`;
         }
