@@ -18,6 +18,7 @@ export interface LoggerOptions {
     showPrefix?: string | (() => string);
     /** Uses `id` if `name` is blank */
     component?: { id: string; name?: string };
+    colorized?: { [key: string]: Chalk }
 }
 
 export enum LogLevel {
@@ -77,7 +78,9 @@ export class Logger {
         return logger;
     }
     private colorizeSender(string: string) {
-        if (string === '[ClusterManager]') return chalk.magenta(string);
+        if (this.options.colorized && Object.hasOwn(this.options.colorized, string)) {
+            return this.options.colorized[string]();
+        }
         return chalk.blueBright(string);
     }
     private formatMessage(level: 'info' | 'warn' | 'debug' | 'error', message: string, context?: string): string {

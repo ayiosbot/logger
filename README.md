@@ -1,5 +1,5 @@
 <div align="center">
-    <h1>@ayios/util</h1>
+    <h1>@ayios/logger</h1>
     <h3><b>Ayios utlities</b></h3>
     <h6>This is primarily used internally by Ayios. It is free for anyone to use.</h6>
 </div>

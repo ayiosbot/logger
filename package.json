@@ -1,6 +1,6 @@
 {
   "name": "@ayios/logger",
-  "version": "1.0.5",
+  "version": "0.0.1",
   "description": "Ayios logger class",
   "main": "out/src/index.js",
   "keywords": [],
