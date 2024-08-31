@@ -90,6 +90,7 @@ export class Logger {
         loggers.set(this.id, this);
         const compId = this.options.component?.id;
         if (compId) loggersComponentIdMap.set(compId, this.id);
+        return this;
     }
     /** Fork a new logger instance */
     public fork(options: LoggerOptions) {
