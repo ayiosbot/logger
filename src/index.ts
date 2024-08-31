@@ -57,6 +57,7 @@ export class Logger {
         loggers.forEach(l => {
             l.setOptions({ level: level });
         });
+        return this;
     }
     public getById(id: string) {
         return loggers.get(id);
@@ -129,9 +130,6 @@ export class Logger {
         }
         return logMessage + ` ${message}`;
     }
-    public info(message: string, context?: string) {
-        this.logMessage('info', message, context);
-    }
     private logMessage(level: 'info' | 'warn' | 'debug' | 'error', message: string, context?: string) {
         const levels: Record<typeof level, any> = {
             error: [ 0, console.error ],
@@ -141,15 +139,19 @@ export class Logger {
         }
         const [ priority, execute ] = levels[level];
         if (priority <= this.options.level!) execute(this.formatMessage(level, message, context));
+        return this;
+    }
+    public info(message: string, context?: string) {
+        return this.logMessage('info', message, context);
     }
     public warn(message: string, context?: string) {
-        this.logMessage('warn', message, context);
+        return this.logMessage('warn', message, context);
     }
     public debug(message: string, context?: string) {
-        this.logMessage('debug', message, context);
+        return this.logMessage('debug', message, context);
     }
     public error(message: string, context?: string) {
-        this.logMessage('error', message, context);
+        return this.logMessage('error', message, context);
     }
 }
 
