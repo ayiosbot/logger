@@ -25,11 +25,14 @@ export interface LoggerOptions {
 }
 
 export enum LogLevel {
-    Error   = 0,
-    Warning = 1,
-    Info    = 2,
-    Debug   = 3
+    Fatal   = 0,
+    Error   = 1,
+    Warning = 2,
+    Info    = 3,
+    Debug   = 4
 }
+
+export type LevelType = 'info' | 'warn' | 'debug' | 'error' | 'fatal';
 
 const LOG_COLORS: Record<string, Chalk> = {
     info: chalk.green,
@@ -53,21 +56,21 @@ export class Logger {
         this.id = randomUUID();
         this.setOptions(options);
     }
-    public setGlobalLevel(level: LogLevel) {
+    public setGlobalLevel(level: LogLevel): this {
         loggers.forEach(l => {
             l.setOptions({ level: level });
         });
         return this;
     }
-    public getById(id: string) {
+    public getById(id: string): Logger | undefined {
         return loggers.get(id);
     }
-    public getByComponent(id: string) {
+    public getByComponent(id: string): Logger | undefined {
         const loggerId = loggersComponentIdMap.get(id);
         if (!loggerId) return undefined;
         return this.getById(loggerId);
     }
-    public setOptions(options?: LoggerOptions) {
+    public setOptions(options?: LoggerOptions): this {
         Object.assign(this.options, options);
         const doSetComponent = options && 'module' in options
             && 'id' in options.component! && 'name' in options.component!;
@@ -104,7 +107,7 @@ export class Logger {
         }
         return chalk.blue(rawStr);
     }
-    private formatMessage(level: 'info' | 'warn' | 'debug' | 'error', message: string, context?: string): string {
+    private formatMessage(level: LevelType, message: string, context?: string): string {
         const timeFormat = DateTime.now()
             .setZone('America/Los_Angeles')
             .toFormat(`[yyyy-LL-dd hh:mm:ss a${this.options.timezone ? ' ZZZZ' : ''}]`);
@@ -131,28 +134,32 @@ export class Logger {
         }
         return logMessage + ` ${message}`;
     }
-    private logMessage(level: 'info' | 'warn' | 'debug' | 'error', message: string, context?: string) {
+    private logMessage(level: LevelType, message: string, context?: string) {
         const levels: Record<typeof level, any> = {
-            error: [ 0, console.error ],
-            warn:  [ 1, console.warn  ],
-            info:  [ 2, console.info  ],
-            debug: [ 3, console.debug ],
+            fatal: [ 0, console.error ],
+            error: [ 1, console.error ],
+            warn:  [ 2, console.warn  ],
+            info:  [ 3, console.info  ],
+            debug: [ 4, console.debug ],
         }
         const [ priority, execute ] = levels[level];
         if (priority <= this.options.level!) execute(this.formatMessage(level, message, context));
         return this;
     }
-    public info(message: string, context?: string) {
+    public info(message: string, context?: string): this {
         return this.logMessage('info', message, context);
     }
-    public warn(message: string, context?: string) {
+    public warn(message: string, context?: string): this {
         return this.logMessage('warn', message, context);
     }
-    public debug(message: string, context?: string) {
+    public debug(message: string, context?: string): this {
         return this.logMessage('debug', message, context);
     }
-    public error(message: string, context?: string) {
+    public error(message: string, context?: string): this {
         return this.logMessage('error', message, context);
+    }
+    public fatal(message: string, context?: string): this {
+        return this.logMessage('fatal', message, context);
     }
 }
 
